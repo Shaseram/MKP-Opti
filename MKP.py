@@ -2,84 +2,44 @@ import time
 from Problem import Problem
 
 def cargarInstancia():
-    lista_problemas = []
-    try:
-        with open('In1.txt', 'r') as file:
-            lines = file.readlines()
-    except FileNotFoundError:
-        print("Error: No se encontró el archivo 'In1.txt'. Asegúrate de que esté en el mismo directorio.")
-        return []
-
-    try:
-        cantidad_problemas = int(lines[0].strip())
-        linea_actual = 2 # Empezamos en la línea 2 (índice 1 es línea en blanco)
-        
-        for index in range(cantidad_problemas):
-            if linea_actual >= len(lines):
-                print(f"Error: El archivo no contiene suficientes líneas para el problema {index+1}")
-                break
-            
-            problema = Problem()
-
-            # Leer n, m, optimo
-            datos = lines[linea_actual].strip().split()
-            if len(datos) < 3:
-                 print(f"Error: Formato incorrecto en línea {linea_actual + 1} para n, m, optimo.")
-                 break
-            problema.cantidad_variables = int(datos[0])
-            problema.cantidad_restricciones = int(datos[1])
-            problema.optimo = float(datos[2])
-            linea_actual += 1
-
-            # Leer valores/beneficios
-            if linea_actual >= len(lines):
-                 print(f"Error: Faltan líneas para valores (problema {index+1}).")
-                 break
-            datos = lines[linea_actual].strip().split()
-            if len(datos) != problema.cantidad_variables:
-                 print(f"Error: Inconsistencia en cantidad de valores en línea {linea_actual + 1} (problema {index+1}). Esperados {problema.cantidad_variables}, encontrados {len(datos)}.")
-                 # break # Podríamos parar, o intentar continuar con lo que hay
-            problema.valores_variables = [float(valor) for valor in datos]
-            linea_actual += 1
-
-            # Leer matriz de restricciones
-            problema.lista_restricciones = []
-            for i in range(problema.cantidad_restricciones):
-                if linea_actual >= len(lines):
-                    print(f"Error: Faltan líneas para restricciones (problema {index+1}, restricción {i+1}).")
-                    problema.lista_restricciones = [] # Marcar como incompleto
-                    break
-                datos = lines[linea_actual].strip().split()
-                if len(datos) != problema.cantidad_variables:
-                     print(f"Error: Inconsistencia en cantidad de pesos en línea {linea_actual + 1} (problema {index+1}, restricción {i+1}). Esperados {problema.cantidad_variables}, encontrados {len(datos)}.")
-                problema.lista_restricciones.append([float(valor) for valor in datos])
-                linea_actual += 1
-            
-            if not problema.lista_restricciones and problema.cantidad_restricciones > 0: # Si hubo error leyendo restricciones
-                 linea_actual += problema.cantidad_restricciones - len(problema.lista_restricciones) # Intentar saltar líneas restantes
-                 if linea_actual >= len(lines): continue # Saltar al siguiente problema si no quedan líneas
-
-            # Leer capacidades
-            if linea_actual >= len(lines):
-                 print(f"Error: Faltan líneas para capacidades (problema {index+1}).")
-                 break
-            datos = lines[linea_actual].strip().split()
-            if len(datos) != problema.cantidad_restricciones:
-                 print(f"Error: Inconsistencia en cantidad de capacidades en línea {linea_actual + 1} (problema {index+1}). Esperados {problema.cantidad_restricciones}, encontrados {len(datos)}.")
-            problema.lista_capacidades = [float(valor) for valor in datos]
-            linea_actual += 1
-
-            lista_problemas.append(problema)
-
-            # Saltar la línea en blanco entre problemas si no es el último
-            if index < cantidad_problemas - 1:
-                linea_actual += 1
-                
-    except (ValueError, IndexError) as e:
-        print(f"Error procesando el archivo 'In1.txt' en la línea {linea_actual + 1}: {e}")
-        print("Verifica el formato del archivo según la descripción.")
-
-    return lista_problemas
+     lista_problemas = []
+     
+     with open('In1.txt', 'r') as file:
+         lines = file.readlines()
+ 
+     cantidad_problemas = int(lines[0].strip())
+ 
+     linea_actual = 2
+     for index in range(cantidad_problemas):
+         problema = Problem()
+ 
+         datos = lines[linea_actual].strip().split()
+         problema.cantidad_variables = int(datos[0])
+         problema.cantidad_restricciones = int(datos[1])
+         problema.optimo = float(datos[2])
+         
+         linea_actual += 1
+ 
+         datos = lines[linea_actual].strip().split()
+         problema.valores_variables = [float(valor) for valor in datos]
+         linea_actual += 1
+ 
+ 
+         for i in range(problema.cantidad_restricciones):
+             datos = lines[linea_actual].strip().split()
+             problema.lista_restricciones.append([float(valor) for valor in datos])
+             linea_actual += 1
+ 
+         datos = lines[linea_actual].strip().split()
+         problema.lista_capacidades = [float(valor) for valor in datos]
+         linea_actual += 1
+ 
+         lista_problemas.append(problema)
+ 
+         if index < cantidad_problemas - 1:
+             linea_actual += 1
+     
+     return lista_problemas
 
 def evaluar_solucion(solucion_binaria, problema):
     """
