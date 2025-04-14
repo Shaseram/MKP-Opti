@@ -53,10 +53,7 @@ def evaluar_solucion(solucion_binaria, problema):
         tuple: (float, bool) - El valor total de la solución y si es factible.
                Retorna (0.0, False) si la solución no es válida o no es factible.
     """
-    if not isinstance(solucion_binaria, list) or len(solucion_binaria) != problema.cantidad_variables:
-        #print("Error: Solución binaria inválida.")
-        return 0.0, False # Solución inválida
-
+    
     valor_total = 0.0
     peso_total_por_restriccion = [0.0] * problema.cantidad_restricciones
     es_factible = True
@@ -65,30 +62,16 @@ def evaluar_solucion(solucion_binaria, problema):
     for j in range(problema.cantidad_variables):
         if solucion_binaria[j] == 1:
             valor_total += problema.valores_variables[j]
-            for k in range(problema.cantidad_restricciones):
-                
-                # Asegurarse de que hay suficientes datos en lista_restricciones
-                if k < len(problema.lista_restricciones) and j < len(problema.lista_restricciones[k]):
-                     peso_total_por_restriccion[k] += problema.lista_restricciones[k][j]
-                else:
-                     print(f"Advertencia: Datos de restricción faltantes para item {j}, restricción {k}. Asumiendo peso 0.")
 
+            for k in range(problema.cantidad_restricciones):
+                peso_total_por_restriccion[k] += problema.lista_restricciones[k][j]
+                
 
     # Verificar factibilidad (si las capacidades se respetan)
-    for k in range(problema.cantidad_restricciones):
-         # Asegurarse de que hay suficientes datos en lista_capacidades
-        if k < len(problema.lista_capacidades):
-            if peso_total_por_restriccion[k] > problema.lista_capacidades[k]:
-                es_factible = False
-                break # Si una restricción falla, la solución no es factible
-        else:
-             print(f"Advertencia: Datos de capacidad faltantes para restricción {k}. No se puede verificar factibilidad completa.")
-             es_factible = False # Considerar no factible si faltan datos
-             break
-
-
-    if not es_factible:
-        return 0.0, False # Si no es factible, el valor acumulado no importa para la optimización
+    for i in range(problema.cantidad_restricciones):
+        if peso_total_por_restriccion[i] > problema.lista_capacidades[i]:
+            es_factible = False
+            break 
 
     return valor_total, es_factible
 
@@ -106,10 +89,10 @@ def resolver_mkp_fuerza_bruta(problema):
     """
     n = problema.cantidad_variables
     mejor_valor = 0.0
-    mejor_solucion = [0] * n # Empezar con la mochila vacía como la mejor inicial
+    mejor_solucion = [0] * n 
 
     # --- Límite de Seguridad para Fuerza Bruta ---
-    if n > MAX_N_FUERZA_BRUTA:
+    if n >= MAX_N_FUERZA_BRUTA:
         print(f"ADVERTENCIA: n={n} es demasiado grande para fuerza bruta (límite={MAX_N_FUERZA_BRUTA}). Omitiendo problema.")
         return None, 0.0
     # -----------------------------------------
@@ -119,36 +102,25 @@ def resolver_mkp_fuerza_bruta(problema):
     print(f"Evaluando {num_soluciones} posibles soluciones...")
     start_time = time.time()
 
-    # Iterar a través de todos los enteros de 0 a 2^n - 1
     for i in range(num_soluciones):
-        # Generar la representación binaria de 'i' como una lista de 0s y 1s de longitud 'n'
         solucion_actual = [int(bit) for bit in format(i, f'0{n}b')]
-
-        # Evaluar la solución actual
         valor_actual, es_factible = evaluar_solucion(solucion_actual, problema)
 
-        # Si es factible y mejora la mejor encontrada hasta ahora
         if es_factible and valor_actual > mejor_valor:
             mejor_valor = valor_actual
             mejor_solucion = solucion_actual
-            # print(f"  Nueva mejor solución encontrada: Valor={mejor_valor:.2f}, Sol={mejor_solucion}")
-
-
+            
     end_time = time.time()
     tiempo_transcurrido = end_time - start_time
     print(f"Evaluación completa en {tiempo_transcurrido:.4f} segundos.")
 
-    if mejor_solucion is None and n <= MAX_N_FUERZA_BRUTA:
-         print("No se encontró ninguna solución factible.")
-         mejor_solucion = [0] * n # Devolver mochila vacía si no hay nada factible
-
     return mejor_solucion, mejor_valor
 
-# --- Script Principal ---
-if __name__ == "__main__":
-    MAX_N_FUERZA_BRUTA = 30
-    lista_problemas = cargarInstancia()
 
+if __name__ == "__main__":
+    
+    lista_problemas = cargarInstancia()
+    MAX_N_FUERZA_BRUTA = 28
     if lista_problemas:
         print(f"Se cargaron {len(lista_problemas)} instancias del problema.")
 
@@ -157,7 +129,12 @@ if __name__ == "__main__":
             print(f"Procesando Instancia #{idx+1}")
             print(f"-------------------------------------")
             print("Datos del problema:")
-            print(prob.get_data()) # Descomentar si quieres ver todos los datos leídos
+            print(f"Cantidad variables: {prob.cantidad_variables}") 
+            print(f"Cantidad restricciones: {prob.cantidad_restricciones}")
+            print(f"Óptimo conocido: {prob.optimo}")
+            print(f"Valores variables: {prob.valores_variables}")
+            print(f"Lista restricciones: {prob.lista_restricciones}")
+            print(f"Lista capacidades: {prob.lista_capacidades}")
 
             solucion_encontrada, valor_encontrado = resolver_mkp_fuerza_bruta(prob)
 
@@ -166,14 +143,14 @@ if __name__ == "__main__":
                 print(f"  Mejor solución encontrada: {solucion_encontrada}")
                 print(f"  Valor de la solución:    {valor_encontrado:.2f}")
                 print(f"  Óptimo conocido:         {prob.optimo:.2f}")
-                if abs(valor_encontrado - prob.optimo) < 1e-6: # Comparación con tolerancia
+                if abs(valor_encontrado - prob.optimo) == 0: 
                     print("  ¡El valor encontrado coincide con el óptimo conocido!")
-                else:
-                    diferencia = abs(valor_encontrado - prob.optimo)
-                    gap = (diferencia / prob.optimo) * 100 if prob.optimo > 1e-9 else float('inf')
-                    print(f"  Diferencia con el óptimo: {diferencia:.2f} ({gap:.2f}%)")
-            else:
-                 print(f"\nNo se procesó la Instancia #{idx+1} (n > {MAX_N_FUERZA_BRUTA}).")
+
 
         print("\n=====================================")
         print("Procesamiento de todas las instancias completado.")
+
+
+
+
+
