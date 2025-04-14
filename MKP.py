@@ -106,6 +106,13 @@ def resolver_mkp_fuerza_bruta(problema):
         solucion_actual = [int(bit) for bit in format(i, f'0{n}b')]
         valor_actual, es_factible = evaluar_solucion(solucion_actual, problema)
 
+        if valor_actual == problema.optimo:
+            end_time = time.time()
+            tiempo_transcurrido = end_time - start_time
+            print(f"Evaluación completa en {tiempo_transcurrido:.4f} segundos.")
+            
+            return solucion_actual,valor_actual
+
         if es_factible and valor_actual > mejor_valor:
             mejor_valor = valor_actual
             mejor_solucion = solucion_actual
@@ -120,7 +127,7 @@ def resolver_mkp_fuerza_bruta(problema):
 if __name__ == "__main__":
     
     lista_problemas = cargarInstancia()
-    MAX_N_FUERZA_BRUTA = 28
+    MAX_N_FUERZA_BRUTA = 51
     if lista_problemas:
         print(f"Se cargaron {len(lista_problemas)} instancias del problema.")
 
@@ -149,8 +156,3 @@ if __name__ == "__main__":
 
         print("\n=====================================")
         print("Procesamiento de todas las instancias completado.")
-
-
-
-
-
