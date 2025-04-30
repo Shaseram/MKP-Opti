@@ -1,5 +1,5 @@
 # MKP-Opti
 
 Multidimensional Knapsack Problem 0/1 
-- Force Brute
+- Brute Force
 - Genetic Algorithm (later)
