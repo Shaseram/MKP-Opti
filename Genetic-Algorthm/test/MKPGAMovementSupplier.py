@@ -9,8 +9,9 @@ class MKPGAMovementSupplier(GAMovementsSupplier):
     
 
   def create_individual(self):
-   
-    return [random.choice([0, 1]) for _ in range(self.ga_params.n_genes)]
+    probabilidad_de_incluir = 0.15 
+
+    return [1 if random.random() < probabilidad_de_incluir else 0 for _ in range(self.ga_params.n_genes)]
 
   def select(self, population):
     """

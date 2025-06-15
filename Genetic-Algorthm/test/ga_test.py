@@ -13,7 +13,7 @@ from MKPObjectiveFunction import MKPObjectiveFunction
 Parametros MKP
 """
 population_size = 1000
-n_generation = 50
+n_generation = 1000
 p_mutate = 0.1
 
 mkp_parameters: Instances = MKPInstance("test/MKPInstances/Actual.txt")
