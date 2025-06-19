@@ -1,0 +1,11 @@
+Fácil 100 objetos, 5 dimensiones:
+https://people.brunel.ac.uk/~mastjjb/jeb/orlib/files/mknapcb1.txt
+(Primer problema, indice 0)
+
+Medio 250 objetos, 10 dimensiones:
+https://people.brunel.ac.uk/~mastjjb/jeb/orlib/files/mknapcb5.txt
+(Primer problema, indice 0)
+
+Difícil 500 objetos, 30 dimensiones:
+https://people.brunel.ac.uk/~mastjjb/jeb/orlib/files/mknapcb9.txt
+(Primer problema, indice 0)
