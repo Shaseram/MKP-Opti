@@ -1,91 +1,21 @@
 import sys
 import os
+import time
+import csv
+from datetime import datetime
+import numpy as np
+import matplotlib.pyplot as plt
+import yaml # <--- ¡NUEVA IMPORTACIÓN!
 
+# ==============================================================================
+# 1. CONFIGURACIÓN DEL ENTORNO Y DEL FRAMEWORK DE EXPERIMENTOS
+# ==============================================================================
 # Obtener la ruta absoluta del directorio del proyecto (que está un nivel arriba de 'test')
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # Agregar la raíz del proyecto al sys.path para que Python pueda encontrar el módulo 'src'
 sys.path.insert(0, project_root)
 
-from datetime import datetime
-
-def exportar_resultados_a_txt(solucion, fitness, historial_fitness, nombre_archivo, population_size, n_generation, p_mutate, total_time):
-    """
-    Exporta los resultados de un algoritmo genético a un archivo de texto.
-
-    Args:
-        solucion (list or array): La mejor solución encontrada (vector de 0s y 1s).
-        fitness (float or int): El valor de fitness de la mejor solución.
-        historial_fitness (list or array): Una lista con el mejor fitness de cada generación.
-        nombre_archivo (str): El nombre del archivo de salida (ej. "resultados_ga.txt").
-    """
-    try:
-        # Usamos 'with open' que se encarga de cerrar el archivo automáticamente
-        with open(nombre_archivo, 'w', encoding='utf-8') as f:
-            # 1. Escribir un encabezado con información general y fecha
-            now = datetime.now()
-            f.write("--- Resultados del Algoritmo Genético ---\n")
-            f.write(f"TIEMPO DE EJECUCIÓN -> {total_time}\n\n")
-            
-            f.write("--- Parámetros ---\n")
-            f.write(f"TAMAÑO POBLACIÓN -> {population_size}\n\n")
-            f.write(f"NÚMERO GENERACIONES -> {n_generation}\n\n")
-            f.write(f"PROBABILIDAD MUTACIÓN -> {p_mutate}\n\n")
-            
-            # 2. Escribir la mejor solución y su fitness
-            f.write("== Mejor Solución Encontrada ==\n")
-            f.write(f"Mejor Fitness: {fitness}\n")
-            f.write("Vector de la Solución:\n")
-            # Convertimos la lista de la solución a un string separado por espacios
-            solucion_str = " ".join(map(str, solucion))
-            f.write(f"{solucion_str}\n\n")
-
-            # 3. Escribir el historial de fitness por generación
-            f.write("== Historial de Fitness por Generación ==\n")
-            # Usamos enumerate para obtener el número de la generación (empezando en 1)
-            for i, valor_fitness in enumerate(historial_fitness):
-                f.write(f"Generación {i + 1}: {valor_fitness}\n")
-        
-        print(f"Resultados exportados exitosamente a '{nombre_archivo}'")
-
-    except IOError as e:
-        print(f"Error al escribir en el archivo '{nombre_archivo}': {e}")
-        
-        
-import os
-
-def obtener_siguiente_numero_ejecucion(ruta_resultados, nombre_instancia):
-    """
-    Revisa la carpeta de resultados para encontrar el mayor número de ejecución
-    y devuelve el siguiente.
-    """
-    # Asegurarse de que la carpeta de resultados exista
-    os.makedirs(ruta_resultados, exist_ok=True)
-    
-    max_c = -1
-    prefijo = f"resultados_ejecucion_"
-
-    try:
-        # Listar todos los archivos en el directorio
-        for archivo in os.listdir(ruta_resultados):
-            # Verificar si el archivo corresponde al patrón de resultados
-            if archivo.startswith(prefijo) and archivo.endswith(f"_{nombre_instancia}"):
-                # Extraer el número del nombre del archivo
-                try:
-                    parte_media = archivo[len(prefijo):-len(f"_{nombre_instancia}")]
-                    num_actual = int(parte_media)
-                    if num_actual > max_c:
-                        max_c = num_actual
-                except ValueError:
-                    # El archivo coincide con el patrón pero no tiene un número válido, lo ignoramos.
-                    continue
-        
-        # El siguiente número es el máximo encontrado + 1
-        return max_c + 1
-        
-    except OSError as e:
-        print(f"Error leyendo el directorio {ruta_resultados}: {e}")
-        return 0
 
 from src.optimization.optimization_algorithm import OptimizationAlgorithm
 from src.optimization.genetic_algorithm.movements_supplier.GeneticAlgorithmMovementsSupplier import GAMovementsSupplier
@@ -98,33 +28,227 @@ from MKPGAMovementSupplier import MKPGAMovementSupplier
 from MKPInstance import MKPInstance
 from MKPObjectiveFunction import MKPObjectiveFunction
 
-"""
-Parametros MKP
-"""
-population_size = 5000
-n_generation = 5000
-p_mutate = 0.066666666666666666666666666
+# --- PANEL DE CONTROL PRINCIPAL ---
+# Define la instancia a probar y cuántas veces se ejecutará cada experimento
+INSTANCIA_A_PROBAR = "InstanciaMKP_actual_1"
+# Define la carpeta donde se guardarán TODOS los resultados
+RUTA_BASE_RESULTADOS = "/home/daniel/OPTI/MKP-Opti/Genetic-Algorthm/test/results_experiments"
+RUTA_ARCHIVO_YAML = "/home/daniel/OPTI/MKP-Opti/Genetic-Algorthm/test/experimentos.yaml" # <--- RUTA A NUESTRO ARCHIVO DE CONFIGURACIÓN
 
+# --- LISTA DE EXPERIMENTOS A REALIZAR ---
 
-instance = "InstanciaMKP_actual_9"
-mkp_parameters: Instances = MKPInstance(f"test/MKPInstances/{instance}.txt")
-n_genes = mkp_parameters.cantidad_variables
-ga_params: GAParameters = GAParameters(population_size, n_genes, n_generation, p_mutate)
-mkp_obj_function: ObjectiveFunction = MKPObjectiveFunction(False, mkp_parameters.lista_restricciones, 
-                                                            mkp_parameters.lista_capacidades, mkp_parameters.optimo,
-                                                                mkp_parameters.valores_variables, 
-                                                                mkp_parameters.cantidad_restricciones, mkp_parameters.cantidad_variables)
-mkp_movement_supplier: GAMovementsSupplier = MKPGAMovementSupplier(ga_params)
+def cargar_configuracion_desde_yaml(ruta_yaml):
+    """Carga la configuración global y los experimentos desde un archivo YAML."""
+    try:
+        with open(ruta_yaml, 'r', encoding='utf-8') as f:
+            config_data = yaml.safe_load(f)
+        
+        global_config = config_data.get("configuracion_global")
+        # Verificamos que los parámetros globales ahora existan
+        if not all(k in global_config for k in ["ruta_instancia", "population_size", "n_generations"]):
+            print("Error: El YAML debe tener 'configuracion_global' con 'ruta_instancia', 'population_size', y 'n_generations'.")
+            return None, None
 
-genetic_algorithm: OptimizationAlgorithm = GeneticAlgorithm(ga_params, mkp_movement_supplier, mkp_obj_function)
+        experimentos = [exp for exp in config_data.get("experimentos", []) if exp and exp.get("nombre")]
+        if not experimentos:
+            print("Advertencia: El archivo YAML no contiene experimentos válidos.")
+            return global_config, None
+            
+        print(f"Cargada configuración global para la tanda.")
+        print(f"Cargados {len(experimentos)} experimentos desde '{ruta_yaml}'.")
+        return global_config, experimentos
+    except (FileNotFoundError, yaml.YAMLError) as e:
+        print(f"Error procesando el archivo YAML '{ruta_yaml}': {e}")
+        return None, None
 
-best_solution, best_fitness, ga_track, total_time = genetic_algorithm.run()
-print(f"Solution = {best_solution} | Fitness = {best_fitness}")
+# ==============================================================================
+# 2. FUNCIONES DE EXPORTACIÓN Y GRAFICACIÓN
+# ==============================================================================
 
+def exportar_reporte_detallado(ruta_archivo, config, resultados_fitness, tiempos_ejecucion, optima_sol):
+    """Exporta un reporte detallado en .txt para un experimento completo."""
+    with open(ruta_archivo, 'w', encoding='utf-8') as f:
+        f.write(f"--- Reporte de Resultados para el Experimento: {config['nombre']} ---\n")
+        f.write(f"Instancia: {INSTANCIA_A_PROBAR}\n")
+        f.write(f"Fecha: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+        f.write(f"Número de Ejecuciones: {len(resultados_fitness)}\n\n")
 
-ruta_base_resultados = "/home/daniel/PERSONAL/UNIVERSIDAD/OPTI/MKP-Opti/Genetic-Algorthm/test/results"
-c = obtener_siguiente_numero_ejecucion(ruta_base_resultados, instance)
-nombre_del_archivo = f"{ruta_base_resultados}/resultados_ejecucion_{c}_{instance}"
-print(f"Esta es la ejecución N° {c}. Se guardará en: {nombre_del_archivo}")
+        f.write("--- Parámetros de Configuración ---\n")
+        for key, value in config['params'].items():
+            f.write(f"{key}: {value}\n")
+        f.write("\n")
 
-exportar_resultados_a_txt(best_solution, best_fitness, ga_track, nombre_del_archivo, population_size, n_generation, p_mutate, total_time)
+        f.write("--- Estadísticas de Resultados ---\n")
+        f.write(f"Mejor Fitness Encontrado (en todas las ejecuciones): {max(resultados_fitness):.4f}\n")
+        f.write(f"Peor Fitness Encontrado: {min(resultados_fitness):.4f}\n")
+        f.write(f"Fitness Promedio: {np.mean(resultados_fitness):.4f}\n")
+        f.write(f"Desviación Estándar del Fitness: {np.std(resultados_fitness):.4f}\n")
+        f.write(f"Tiempo de Ejecución Promedio: {np.mean(tiempos_ejecucion):.4f}s\n\n")
+
+        f.write("--- Mejor Solución Global Encontrada ---\n")
+        f.write(f"Fitness: {optima_sol['fitness']}\n")
+        f.write(f"Vector: {' '.join(map(str, optima_sol['solucion']))}\n")
+
+def generar_grafico_convergencia(ruta_archivo, all_histories, config_nombre):
+    """Genera y guarda un gráfico de convergencia promedio con desviación estándar."""
+    # Rellenar historiales para que todos tengan la misma longitud
+    max_len = max(len(h) for h in all_histories)
+    all_histories_padded = [np.pad(h, (0, max_len - len(h)), 'edge') for h in all_histories]
+    
+    mean_fitness = np.mean(all_histories_padded, axis=0)
+    std_fitness = np.std(all_histories_padded, axis=0)
+    
+    plt.figure(figsize=(12, 7))
+    plt.plot(mean_fitness, label="Fitness Promedio", color='blue')
+    plt.fill_between(range(max_len), mean_fitness - std_fitness, mean_fitness + std_fitness, color='blue', alpha=0.2, label="Desviación Estándar")
+    plt.title(f"Convergencia Promedio - {config_nombre}")
+    plt.xlabel("Generación")
+    plt.ylabel("Mejor Fitness")
+    plt.grid(True)
+    plt.legend()
+    plt.savefig(ruta_archivo)
+    plt.close()
+
+def generar_boxplot_fitness(ruta_archivo, final_fitnesses, config_nombre):
+    """Genera y guarda un boxplot de los resultados de fitness finales."""
+    plt.figure(figsize=(8, 6))
+    plt.boxplot(final_fitnesses, patch_artist=True)
+    plt.title(f"Distribución de Fitness Final - {config_nombre}")
+    plt.ylabel("Mejor Fitness")
+    plt.xticks([1], [config_nombre])
+    plt.grid(True)
+    plt.savefig(ruta_archivo)
+    plt.close()
+
+def actualizar_resumen_csv(ruta_csv, datos_experimento):
+    """Añade una fila a un archivo CSV de resumen. Crea el archivo y el encabezado si no existen."""
+    escribir_encabezado = not os.path.exists(ruta_csv)
+    
+    with open(ruta_csv, 'a', newline='', encoding='utf-8') as f:
+        writer = csv.DictWriter(f, fieldnames=datos_experimento.keys())
+        if escribir_encabezado:
+            writer.writeheader()
+        writer.writerow(datos_experimento)
+
+# ==============================================================================
+# 3. BUCLE PRINCIPAL DE EJECUCIÓN
+# ==============================================================================
+
+if __name__ == "__main__":
+    global_config, EXPERIMENTOS = cargar_configuracion_desde_yaml(RUTA_ARCHIVO_YAML)
+    if not global_config or not EXPERIMENTOS:
+        sys.exit("No se pudo cargar la configuración o los experimentos. El programa terminará.")
+
+    # Extraer configuración global
+    ruta_instancia_relativa = global_config["ruta_instancia"]
+    NUM_EJECUCIONES_POR_EXPERIMENTO = global_config.get("numero_ejecuciones", 10)
+    
+    # --- AJUSTE: Parámetros ahora globales ---
+    POPULATION_SIZE_GLOBAL = global_config["population_size"]
+    N_GENERATIONS_GLOBAL = global_config["n_generations"]
+    
+    nombre_instancia = os.path.splitext(os.path.basename(ruta_instancia_relativa))[0]
+    
+    print(f"Cargando instancia: {nombre_instancia}...")
+    ruta_instancia_completa = os.path.join(project_root, ruta_instancia_relativa) if not os.path.isabs(ruta_instancia_relativa) else ruta_instancia_relativa
+    mkp_instance = MKPInstance(ruta_instancia_completa)
+
+    ruta_base_instancia = os.path.join(RUTA_BASE_RESULTADOS, nombre_instancia)
+    os.makedirs(ruta_base_instancia, exist_ok=True)
+    ruta_resumen_csv = os.path.join(ruta_base_instancia, f"resumen_experimentos_{nombre_instancia}.csv") 
+
+    for experimento in EXPERIMENTOS:
+        config_nombre = experimento["nombre"]
+        params_experimento = experimento["params"]
+        
+        print(f"\n{'='*80}\n--- Ejecutando Experimento: {config_nombre} para Instancia: {nombre_instancia} ---\n{'='*80}")
+
+        ruta_experimento_actual = os.path.join(ruta_base_instancia, config_nombre)
+        os.makedirs(ruta_experimento_actual, exist_ok=True)
+
+        # Listas para almacenar los resultados de las N ejecuciones
+        resultados_fitness_experimento = []
+        tiempos_experimento = []
+        historias_experimento = []
+        mejor_solucion_global = {"fitness": -1, "solucion": []}
+
+        # Bucle interno que ejecuta el mismo experimento N veces
+        for i in range(NUM_EJECUCIONES_POR_EXPERIMENTO):
+            print(f"  -> Ejecución {i + 1}/{NUM_EJECUCIONES_POR_EXPERIMENTO}...")
+
+            # --- AJUSTE: Combinar parámetros globales con los del experimento ---
+            parametros_completos = {
+                "population_size": POPULATION_SIZE_GLOBAL,
+                "n_generations": N_GENERATIONS_GLOBAL,
+                "n_genes": mkp_instance.cantidad_variables
+            }
+            # Se añaden los parámetros específicos del experimento. Si un parámetro
+            # (ej. p_mutate) existe, se añade.
+            parametros_completos.update(params_experimento)
+
+            # Instanciar GAParameters con el diccionario completo y combinado
+            ga_params = GAParameters(**parametros_completos)
+
+            # Instanciar los componentes del AG con la configuración actual
+            mkp_obj_function = MKPObjectiveFunction(False, mkp_instance.lista_restricciones, 
+                                                    mkp_instance.lista_capacidades, mkp_instance.optimo,
+                                                    mkp_instance.valores_variables, 
+                                                    mkp_instance.cantidad_restricciones, mkp_instance.cantidad_variables,
+                                                    constraint_strategy=ga_params.constraint_strategy,
+                                                    penalty_factor=ga_params.penalty_factor)
+            
+            mkp_movement_supplier = MKPGAMovementSupplier(ga_params)
+            genetic_algorithm = GeneticAlgorithm(ga_params, mkp_movement_supplier, mkp_obj_function)
+
+            # Ejecutar el algoritmo
+            best_solution, best_fitness, ga_track, total_time = genetic_algorithm.run()
+
+            # Guardar los resultados de esta ejecución
+            resultados_fitness_experimento.append(best_fitness)
+            tiempos_experimento.append(total_time)
+            historias_experimento.append(ga_track)
+
+            if best_fitness > mejor_solucion_global["fitness"]:
+                mejor_solucion_global["fitness"] = best_fitness
+                mejor_solucion_global["solucion"] = best_solution
+        
+         # --- Al finalizar, procesar y exportar ---
+        print(f"--- Experimento '{config_nombre}' completado. Generando reportes... ---")
+
+        # AJUSTE: Asegurarse de que los parámetros globales se reporten
+        # Creamos una copia de los parámetros del experimento y añadimos los globales para el reporte
+        parametros_reporte = {
+            "population_size": POPULATION_SIZE_GLOBAL,
+            "n_generations": N_GENERATIONS_GLOBAL,
+            **params_experimento
+        }
+        
+        # Modificamos el diccionario del experimento para que el reporte sea completo
+        experimento_para_reporte = {"nombre": config_nombre, "params": parametros_reporte}
+        # 1. Exportar el reporte detallado en .txt
+        ruta_txt = os.path.join(ruta_experimento_actual, "reporte_detallado.txt")
+        exportar_reporte_detallado(ruta_txt, experimento, resultados_fitness_experimento, tiempos_experimento, mejor_solucion_global)
+
+        # 2. Generar y guardar el gráfico de convergencia
+        ruta_convergencia = os.path.join(ruta_experimento_actual, "grafico_convergencia.png")
+        generar_grafico_convergencia(ruta_convergencia, historias_experimento, config_nombre)
+
+        # 3. Generar y guardar el boxplot
+        ruta_boxplot = os.path.join(ruta_experimento_actual, "grafico_boxplot.png")
+        generar_boxplot_fitness(ruta_boxplot, resultados_fitness_experimento, config_nombre)
+        
+       # 4. Actualizar el archivo CSV de resumen general
+        datos_para_csv = {
+            "Experimento": config_nombre,
+            "Instancia": nombre_instancia,
+            "Mejor_Fitness": max(resultados_fitness_experimento),
+            "Fitness_Promedio": np.mean(resultados_fitness_experimento),
+            "Fitness_Std_Dev": np.std(resultados_fitness_experimento),
+            "Tiempo_Promedio_s": np.mean(tiempos_experimento),
+            **parametros_reporte # Usamos el diccionario completo para el CSV
+        }
+        actualizar_resumen_csv(ruta_resumen_csv, datos_para_csv)
+        
+        print(f"Reportes para '{config_nombre}' guardados en: {ruta_experimento_actual}")
+
+    print(f"\n¡Todos los experimentos para la instancia {nombre_instancia} han finalizado exitosamente!")

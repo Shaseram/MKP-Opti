@@ -63,3 +63,11 @@ class GAMovementsSupplier(ABC):
     Creates a new individual applying some mutation strategy
     """
     pass
+  
+  @abstractmethod
+  def repair_individual(self, individual, objective_function):
+    """
+    Toma un individuo y lo repara si es infactible.
+    Si ya es factible, lo devuelve sin cambios.
+    """
+    pass

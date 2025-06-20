@@ -1,10 +1,12 @@
+# Archivo: src/optimization/genetic_algorithm/GeneticAlgorithm.py
+
+import time
+from collections import Counter
+import numpy as np
 from src.optimization.optimization_algorithm import OptimizationAlgorithm
 from src.optimization.genetic_algorithm.GeneticAlgorithmParameters import GAParameters
 from src.optimization.genetic_algorithm.movements_supplier.GeneticAlgorithmMovementsSupplier import GAMovementsSupplier
 from src.optimization.objective_function.ObjectiveFunction import ObjectiveFunction
-from collections import Counter
-import time
-
 
 class GeneticAlgorithm(OptimizationAlgorithm):
   def __init__(self,
@@ -16,88 +18,111 @@ class GeneticAlgorithm(OptimizationAlgorithm):
     self.__function: ObjectiveFunction = objective_function
 
   def run(self) -> tuple:
+    # --- 0. INICIALIZACIÓN ---
     population = self.__movements_supplier.create_population()
     fitness = self.__movements_supplier.compute_population_fitness(self.__function, population)
-    generacion_track = []
-    best_individual, best_fitness = self.__movements_supplier.get_best(self.__function, population, fitness)
-
-    population_with_fitness = list(zip(fitness, population))
     
+    best_individual, best_fitness = self.__movements_supplier.get_best(self.__function, population, fitness)
+    print(f"Mejor fitness inicial: {best_fitness}")
+
+    # Variables para seguimiento
+    generacion_track = [best_fitness]
     track_time_per_gen = []
     start_total = time.time()
 
     for i in range(self.__ga_params.n_generations):
       gen_start = time.time()
       
-      new_population = []
-      new_fitness = []
-      parents = self.__movements_supplier.select(population_with_fitness)
-
-      while len(new_population) < self.__ga_params.population_size:
-        offsping1, offspring2 = self.__movements_supplier.crossing(parents[0], parents[1])
-        h1 = self.__movements_supplier.mutate(offsping1, self.__ga_params.p_mutate)
-        #print(h1)
-        #print(f"\nCalculando fitess Hijo . . .")
-        new_fitness.append(self.__function.evaluate(h1))
-        new_population.append(h1)
-
-        if len(new_population) < self.__ga_params.population_size:
-          h2 = self.__movements_supplier.mutate(offspring2, self.__ga_params.p_mutate)
-          #print(h2)
-          #print(f"\nCalculando fitess Hijo . . .")
-          new_fitness.append(self.__function.evaluate(h2))
-          new_population.append(h2)
+      population_with_fitness = list(zip(fitness, population))
       
-      print(f"Gen actual -> {i+1}")
+      # La nueva población que construiremos en esta generación
+      new_population = []
 
-      new_population_with_fitness = list(zip(new_fitness, new_population))
-      population_with_fitness = self.generate_new_population(new_population_with_fitness, population_with_fitness)
+      # --- 1. ELITISMO ---
+      # Si se ha configurado, los mejores individuos de la generación actual
+      # pasan directamente a la siguiente, sin cambios.
+      if self.__ga_params.elitism_count > 0:
+        # Ordenamos la población actual de mejor a peor fitness
+        population_with_fitness.sort(key=lambda x: x[0], reverse=True)
+        # Añadimos los 'N' mejores a la nueva población
+        elites = [ind for fit, ind in population_with_fitness[:self.__ga_params.elitism_count]]
+        new_population.extend(elites)
 
-      fitness, population = zip(*population_with_fitness)
-      current_best_individual, current_best_fitness = self.__movements_supplier.get_best(self.__function, population,
-                                                                                         fitness)
+      # --- 2. BUCLE DE CREACIÓN DE DESCENDENCIA ---
+      # Se generan nuevos individuos hasta completar el tamaño de la población.
+      while len(new_population) < self.__ga_params.population_size:
+        
+        # 2.1. SELECCIÓN DE PADRES (¡DENTRO DEL BUCLE!)
+        # Se seleccionan dos padres para cada pareja de hijos. Esto es crucial
+        # para la diversidad genética.
+        parent1 = self.__movements_supplier.select(population_with_fitness)
+        parent2 = self.__movements_supplier.select(population_with_fitness)
+
+        # 2.2. CRUZAMIENTO
+        offspring1, offspring2 = self.__movements_supplier.crossing(parent1, parent2)
+        
+        # 2.3. MUTACIÓN
+        offspring1 = self.__movements_supplier.mutate(offspring1, self.__ga_params.p_mutate)
+        offspring2 = self.__movements_supplier.mutate(offspring2, self.__ga_params.p_mutate)
+
+        # 2.4. REPARACIÓN (OPCIONAL)
+        # Si la estrategia es 'repair', aquí se arreglan los hijos.
+        # Si no, esta función los devuelve sin cambios.
+        offspring1 = self.__movements_supplier.repair_individual(offspring1, self.__function)
+        offspring2 = self.__movements_supplier.repair_individual(offspring2, self.__function)
+
+        # 2.5. AÑADIR NUEVOS HIJOS A LA POBLACIÓN
+        new_population.append(offspring1)
+        if len(new_population) < self.__ga_params.population_size:
+            new_population.append(offspring2)
+
+      # --- 3. REEMPLAZO DE LA POBLACIÓN ---
+      # La población de la siguiente generación está completa.
+      population = new_population
+      fitness = self.__movements_supplier.compute_population_fitness(self.__function, population)
+      
+      # --- 4. SEGUIMIENTO Y ACTUALIZACIÓN ---
+      current_best_individual, current_best_fitness = self.__movements_supplier.get_best(self.__function, population, fitness)
 
       if self.__function.compare_objective_values(current_best_fitness, best_fitness) > 0:
         best_individual = current_best_individual
         best_fitness = current_best_fitness
 
-      generacion_track.append(max(population_with_fitness, key=lambda x: x[0])[0])
-      print(f"\nGeneración {i + 1}/{self.__ga_params.n_generations}, Mejor fitness: {best_fitness}\n")
+      generacion_track.append(best_fitness)
+      print(f"Generación {i + 1}/{self.__ga_params.n_generations}, Mejor fitness: {best_fitness}")
+      
       elapsed_gen = time.time() - gen_start
       track_time_per_gen.append(elapsed_gen)
 
-      # if (self.validate_termination(fitness)): 
-      #   # print(self.__function.get_history())
-      #   return best_individual, best_fitness
-    
+      if self.validate_termination(fitness):
+          break
+
+    # --- 5. FIN Y REPORTE ---
     total_time = time.time() - start_total
     print("===============================================")
     for idx, (fit, tgen) in enumerate(zip(generacion_track, track_time_per_gen), start=1):
         print(f"Generación {idx} | Mejor Fitness = {fit} | Tiempo = {tgen:.3f} s")
     print(f"Tiempo total de ejecución: {total_time:.3f} s\n")
 
-    # print(self.__function.get_history())
     return best_individual, best_fitness, generacion_track, total_time
 
-  def generate_new_population(self, new_population_with_fitness, population_with_fitness):
-
-    temp_population = new_population_with_fitness + population_with_fitness
-    temp_population.sort(key=lambda x: x[0], reverse=True)
-
-    return temp_population[0:self.__ga_params.population_size]
-
   def validate_termination(self, fitness):
+    # Tu método de terminación está bien.
     fitness_count = Counter(fitness)
-
     total_gen = len(fitness)
     limit = total_gen * 0.95
-
     terminate = any(value >= limit for value in fitness_count.values())
 
     if terminate:
-      print("El 95% o más de la población tiene el mismo valor de fitness.")
-      print(fitness_count)
+      print("\nCondición de terminación alcanzada: El 95% o más de la población tiene el mismo valor de fitness.")
       return True
     else:
       return False
 
+  # NOTA SOBRE TU MÉTODO 'generate_new_population'
+  # El método que tenías antes ha sido reemplazado por la lógica de elitismo + reemplazo generacional.
+  # Si quieres conservarlo, puedes añadirlo de nuevo aquí.
+  # def generate_new_population(self, new_population_with_fitness, population_with_fitness):
+  #   temp_population = new_population_with_fitness + population_with_fitness
+  #   temp_population.sort(key=lambda x: x[0], reverse=True)
+  #   return temp_population[0:self.__ga_params.population_size]

@@ -1,0 +1,110 @@
+# ===================================================================
+# Archivo de configuración de experimentos para el Algoritmo Genético
+# ===================================================================
+# --- Configuración Global para esta tanda de experimentos ---
+configuracion_global:
+  ruta_instancia: "/home/daniel/OPTI/MKP-Opti/Genetic-Algorthm/test/MKPInstances/InstanciaMKP_actual_1.txt"
+  numero_ejecuciones: 2
+  population_size: 1000
+  n_generations: 1500
+
+  
+experimentos:
+  # -------------------------------------------------------------------
+  # Experimento 0: El Punto de Partida
+  # Una configuración estándar y sólida para usar como referencia.
+  # -------------------------------------------------------------------
+  - nombre: Baseline_Repair_Ratio_Tournament
+    params:
+      p_mutate: 0.05
+      selection_type: tournament
+      tournament_size: 3
+      crossover_type: uniform
+      elitism_count: 2
+      constraint_strategy: repair
+      repair_heuristic: ratio
+      initial_population_density: 0.2
+
+  # -------------------------------------------------------------------
+  # Experimento 1: El Efecto de los "Building Blocks"
+  # Pregunta: ¿Es más importante para este problema preservar bloques
+  # de genes contiguos (cruce de un punto) que la alta mezcla del
+  # cruce uniforme?
+  # -------------------------------------------------------------------
+  - nombre: CrossoverTest_SinglePoint
+    params:
+      p_mutate: 0.05
+      selection_type: tournament
+      tournament_size: 3
+      crossover_type: single_point  # <--- ÚNICO CAMBIO
+      elitism_count: 2
+      constraint_strategy: repair
+      repair_heuristic: ratio
+      initial_population_density: 0.2
+
+  # -------------------------------------------------------------------
+  # Experimento 2: Probando una Heurística de Reparación Alternativa
+  # Pregunta: ¿Qué es más efectivo: una reparación "inteligente" que
+  # balancea valor/peso (ratio) o una que ataca directamente la
+  # infactibilidad (heaviest)?
+  # -------------------------------------------------------------------
+  - nombre: RepairHeuristicTest_Heaviest
+    params:
+      p_mutate: 0.05
+      selection_type: tournament
+      tournament_size: 3
+      crossover_type: uniform
+      elitism_count: 2
+      constraint_strategy: repair
+      repair_heuristic: heaviest  # <--- ÚNICO CAMBIO
+      initial_population_density: 0.2
+
+  # -------------------------------------------------------------------
+  # Experimento 3: Exploración Agresiva (Alta Mutación y Poca Presión)
+  # Pregunta: ¿Puede el algoritmo encontrar buenas soluciones si se le
+  # fuerza a explorar constantemente el espacio de búsqueda, incluso
+  # a riesgo de destruir buenas soluciones encontradas?
+  # -------------------------------------------------------------------
+  - nombre: HighExploration_HighMutation_Roulette
+    params:
+      p_mutate: 0.15  # <--- Mutación muy alta
+      selection_type: roulette # <--- Baja presión selectiva
+      crossover_type: uniform
+      elitism_count: 1 # Elitismo mínimo para no perder al mejor de todos
+      constraint_strategy: penalty_function
+      penalty_factor: 1.0
+      initial_population_density: 0.3
+
+  # -------------------------------------------------------------------
+  # Experimento 4: Convergencia Rápida (Explotación Agresiva)
+  # Pregunta: ¿Sacrificar la diversidad en favor de una convergencia
+  # muy rápida hacia el mejor individuo actual lleva a mejores
+  # resultados o nos estanca en óptimos locales?
+  # -------------------------------------------------------------------
+  - nombre: HighExploitation_LargeTournament_HighElitism
+    params:
+      p_mutate: 0.02  # <--- Mutación baja para no perder buenos genes
+      selection_type: tournament
+      tournament_size: 15 # <--- Torneo muy grande (alta presión selectiva)
+      crossover_type: two_points
+      elitism_count: 10 # <--- Elitismo alto
+      constraint_strategy: penalty_function
+      penalty_factor: 1.0
+      initial_population_density: 0.2
+
+  # -------------------------------------------------------------------
+  # Experimento 5: El Contendiente Equilibrado con Penalización
+  # Pregunta: ¿Cómo se comporta una configuración "de libro", bien
+  # equilibrada, que usa penalización en lugar de reparación,
+  # contra nuestro baseline?
+  # -------------------------------------------------------------------
+  - nombre: Balanced_Penalty_TwoPointCrossover
+    params:
+      p_mutate: 0.05
+      selection_type: tournament
+      tournament_size: 5 # <--- Torneo moderado
+      crossover_type: two_points # <--- Buen balance entre conservar y mezclar
+      elitism_count: 2
+      constraint_strategy: penalty_function # <--- Estrategia de penalización
+      penalty_factor: 1.0
+      initial_population_density: 0.3
