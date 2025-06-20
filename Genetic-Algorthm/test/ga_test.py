@@ -101,9 +101,9 @@ from MKPObjectiveFunction import MKPObjectiveFunction
 """
 Parametros MKP
 """
-population_size = 1000
-n_generation = 1000
-p_mutate = 0.1
+population_size = 5000
+n_generation = 5000
+p_mutate = 0.066666666666666666666666666
 
 
 instance = "InstanciaMKP_actual_9"

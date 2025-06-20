@@ -43,6 +43,18 @@ class MKPGAMovementSupplier(GAMovementsSupplier):
 
     return child1, child2
   
+  def crossing2(self, padre1, padre2):
+    hijo1, hijo2 = [], []
+
+    for gen1, gen2 in zip(padre1, padre2):
+      if random.random() < 0.5:
+        hijo1.append(gen1)
+        hijo2.append(gen2)
+      else:
+        hijo1.append(gen2)
+        hijo2.append(gen1)
+    return hijo1, hijo2
+  
   def mutate(self, genome, prob_mutacion):
     
     for i in range(len(genome)):
