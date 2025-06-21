@@ -3,10 +3,10 @@
 # ===================================================================
 # --- Configuración Global para esta tanda de experimentos ---
 configuracion_global:
-  ruta_instancia: "/home/daniel/PERSONAL/UNIVERSIDAD/OPTI/MKP-Opti/Genetic-Algorthm/test/MKPInstances/InstanciaMKP_actual_5.txt"
-  numero_ejecuciones: 10
+  ruta_instancia: "/home/daniel/PERSONAL/UNIVERSIDAD/OPTI/MKP-Opti/Genetic-Algorthm/test/MKPInstances/InstanciaMKP_actual_9.txt"
+  numero_ejecuciones: 1
   population_size: 1500
-  n_generations: 1500
+  n_generations: 1000
 
   
 experimentos:

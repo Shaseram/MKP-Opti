@@ -22,7 +22,7 @@ from MKPInstance import MKPInstance
 from MKPObjectiveFunction import MKPObjectiveFunction
 
 # --- PANEL DE CONTROL PRINCIPAL ---
-INSTANCIA_A_PROBAR = "InstanciaMKP_actual_5"
+INSTANCIA_A_PROBAR = "InstanciaMKP_actual_9"
 # Define la carpeta donde se guardarán TODOS los resultados
 RUTA_BASE_RESULTADOS = "/home/daniel/PERSONAL/UNIVERSIDAD/OPTI/MKP-Opti/Genetic-Algorthm/test/results_experiments"
 RUTA_ARCHIVO_YAML = "/home/daniel/PERSONAL/UNIVERSIDAD/OPTI/MKP-Opti/Genetic-Algorthm/test/experimentos.yaml" # <--- RUTA A NUESTRO ARCHIVO DE CONFIGURACIÓN
