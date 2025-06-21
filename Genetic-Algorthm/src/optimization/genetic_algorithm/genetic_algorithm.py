@@ -35,12 +35,9 @@ class GeneticAlgorithm(OptimizationAlgorithm):
       
       population_with_fitness = list(zip(fitness, population))
       
-      # La nueva población que construiremos en esta generación
       new_population = []
 
       # --- 1. ELITISMO ---
-      # Si se ha configurado, los mejores individuos de la generación actual
-      # pasan directamente a la siguiente, sin cambios.
       if self.__ga_params.elitism_count > 0:
         # Ordenamos la población actual de mejor a peor fitness
         population_with_fitness.sort(key=lambda x: x[0], reverse=True)
@@ -49,12 +46,9 @@ class GeneticAlgorithm(OptimizationAlgorithm):
         new_population.extend(elites)
 
       # --- 2. BUCLE DE CREACIÓN DE DESCENDENCIA ---
-      # Se generan nuevos individuos hasta completar el tamaño de la población.
       while len(new_population) < self.__ga_params.population_size:
         
-        # 2.1. SELECCIÓN DE PADRES (¡DENTRO DEL BUCLE!)
-        # Se seleccionan dos padres para cada pareja de hijos. Esto es crucial
-        # para la diversidad genética.
+        # 2.1. SELECCIÓN DE PADRES 
         parent1 = self.__movements_supplier.select(population_with_fitness)
         parent2 = self.__movements_supplier.select(population_with_fitness)
 
@@ -62,10 +56,10 @@ class GeneticAlgorithm(OptimizationAlgorithm):
         offspring1, offspring2 = self.__movements_supplier.crossing(parent1, parent2)
         
         # 2.3. MUTACIÓN
-        offspring1 = self.__movements_supplier.mutate(offspring1, self.__ga_params.p_mutate)
-        offspring2 = self.__movements_supplier.mutate(offspring2, self.__ga_params.p_mutate)
+        offspring1 = self.__movements_supplier.mutate_2(offspring1, self.__ga_params.p_mutate)
+        offspring2 = self.__movements_supplier.mutate_2(offspring2, self.__ga_params.p_mutate)
 
-        # 2.4. REPARACIÓN (OPCIONAL)
+        # 2.4. REPARACIÓN
         # Si la estrategia es 'repair', aquí se arreglan los hijos.
         # Si no, esta función los devuelve sin cambios.
         offspring1 = self.__movements_supplier.repair_individual(offspring1, self.__function)
@@ -107,7 +101,6 @@ class GeneticAlgorithm(OptimizationAlgorithm):
     return best_individual, best_fitness, generacion_track, total_time
 
   def validate_termination(self, fitness):
-    # Tu método de terminación está bien.
     fitness_count = Counter(fitness)
     total_gen = len(fitness)
     limit = total_gen * 0.95
@@ -118,11 +111,3 @@ class GeneticAlgorithm(OptimizationAlgorithm):
       return True
     else:
       return False
-
-  # NOTA SOBRE TU MÉTODO 'generate_new_population'
-  # El método que tenías antes ha sido reemplazado por la lógica de elitismo + reemplazo generacional.
-  # Si quieres conservarlo, puedes añadirlo de nuevo aquí.
-  # def generate_new_population(self, new_population_with_fitness, population_with_fitness):
-  #   temp_population = new_population_with_fitness + population_with_fitness
-  #   temp_population.sort(key=lambda x: x[0], reverse=True)
-  #   return temp_population[0:self.__ga_params.population_size]

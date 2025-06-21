@@ -3,9 +3,9 @@
 # ===================================================================
 # --- Configuración Global para esta tanda de experimentos ---
 configuracion_global:
-  ruta_instancia: "/home/daniel/OPTI/MKP-Opti/Genetic-Algorthm/test/MKPInstances/InstanciaMKP_actual_1.txt"
-  numero_ejecuciones: 2
-  population_size: 1000
+  ruta_instancia: "/home/daniel/PERSONAL/UNIVERSIDAD/OPTI/MKP-Opti/Genetic-Algorthm/test/MKPInstances/InstanciaMKP_actual_5.txt"
+  numero_ejecuciones: 10
+  population_size: 1500
   n_generations: 1500
 
   
@@ -16,11 +16,11 @@ experimentos:
   # -------------------------------------------------------------------
   - nombre: Baseline_Repair_Ratio_Tournament
     params:
-      p_mutate: 0.05
+      p_mutate: 0.03
       selection_type: tournament
-      tournament_size: 3
+      tournament_size: 5
       crossover_type: uniform
-      elitism_count: 2
+      elitism_count: 5
       constraint_strategy: repair
       repair_heuristic: ratio
       initial_population_density: 0.2
@@ -31,16 +31,16 @@ experimentos:
   # de genes contiguos (cruce de un punto) que la alta mezcla del
   # cruce uniforme?
   # -------------------------------------------------------------------
-  - nombre: CrossoverTest_SinglePoint
-    params:
-      p_mutate: 0.05
-      selection_type: tournament
-      tournament_size: 3
-      crossover_type: single_point  # <--- ÚNICO CAMBIO
-      elitism_count: 2
-      constraint_strategy: repair
-      repair_heuristic: ratio
-      initial_population_density: 0.2
+  # - nombre: CrossoverTest_SinglePoint
+  #   params:
+  #     p_mutate: 0.03
+  #     selection_type: tournament
+  #     tournament_size: 3
+  #     crossover_type: single_point  # <--- ÚNICO CAMBIO
+  #     elitism_count: 2
+  #     constraint_strategy: repair
+  #     repair_heuristic: ratio
+  #     initial_population_density: 0.2
 
   # -------------------------------------------------------------------
   # Experimento 2: Probando una Heurística de Reparación Alternativa
@@ -48,16 +48,16 @@ experimentos:
   # balancea valor/peso (ratio) o una que ataca directamente la
   # infactibilidad (heaviest)?
   # -------------------------------------------------------------------
-  - nombre: RepairHeuristicTest_Heaviest
-    params:
-      p_mutate: 0.05
-      selection_type: tournament
-      tournament_size: 3
-      crossover_type: uniform
-      elitism_count: 2
-      constraint_strategy: repair
-      repair_heuristic: heaviest  # <--- ÚNICO CAMBIO
-      initial_population_density: 0.2
+  # - nombre: RepairHeuristicTest_Heaviest
+  #   params:
+  #     p_mutate: 0.05
+  #     selection_type: tournament
+  #     tournament_size: 3
+  #     crossover_type: uniform
+  #     elitism_count: 2
+  #     constraint_strategy: repair
+  #     repair_heuristic: heaviest  # <--- ÚNICO CAMBIO
+  #     initial_population_density: 0.2
 
   # -------------------------------------------------------------------
   # Experimento 3: Exploración Agresiva (Alta Mutación y Poca Presión)
@@ -65,15 +65,15 @@ experimentos:
   # fuerza a explorar constantemente el espacio de búsqueda, incluso
   # a riesgo de destruir buenas soluciones encontradas?
   # -------------------------------------------------------------------
-  - nombre: HighExploration_HighMutation_Roulette
-    params:
-      p_mutate: 0.15  # <--- Mutación muy alta
-      selection_type: roulette # <--- Baja presión selectiva
-      crossover_type: uniform
-      elitism_count: 1 # Elitismo mínimo para no perder al mejor de todos
-      constraint_strategy: penalty_function
-      penalty_factor: 1.0
-      initial_population_density: 0.3
+  # - nombre: HighExploration_HighMutation_Roulette
+  #   params:
+  #     p_mutate: 0.15  # <--- Mutación muy alta
+  #     selection_type: roulette # <--- Baja presión selectiva
+  #     crossover_type: uniform
+  #     elitism_count: 1 # Elitismo mínimo para no perder al mejor de todos
+  #     constraint_strategy: penalty_function
+  #     penalty_factor: 1.0
+  #     initial_population_density: 0.3
 
   # -------------------------------------------------------------------
   # Experimento 4: Convergencia Rápida (Explotación Agresiva)
@@ -81,16 +81,16 @@ experimentos:
   # muy rápida hacia el mejor individuo actual lleva a mejores
   # resultados o nos estanca en óptimos locales?
   # -------------------------------------------------------------------
-  - nombre: HighExploitation_LargeTournament_HighElitism
-    params:
-      p_mutate: 0.02  # <--- Mutación baja para no perder buenos genes
-      selection_type: tournament
-      tournament_size: 15 # <--- Torneo muy grande (alta presión selectiva)
-      crossover_type: two_points
-      elitism_count: 10 # <--- Elitismo alto
-      constraint_strategy: penalty_function
-      penalty_factor: 1.0
-      initial_population_density: 0.2
+  # - nombre: HighExploitation_LargeTournament_HighElitism
+  #   params:
+  #     p_mutate: 0.02  # <--- Mutación baja para no perder buenos genes
+  #     selection_type: tournament
+  #     tournament_size: 15 # <--- Torneo muy grande (alta presión selectiva)
+  #     crossover_type: two_points
+  #     elitism_count: 10 # <--- Elitismo alto
+  #     constraint_strategy: penalty_function
+  #     penalty_factor: 1.0
+  #     initial_population_density: 0.2
 
   # -------------------------------------------------------------------
   # Experimento 5: El Contendiente Equilibrado con Penalización
@@ -98,13 +98,13 @@ experimentos:
   # equilibrada, que usa penalización en lugar de reparación,
   # contra nuestro baseline?
   # -------------------------------------------------------------------
-  - nombre: Balanced_Penalty_TwoPointCrossover
-    params:
-      p_mutate: 0.05
-      selection_type: tournament
-      tournament_size: 5 # <--- Torneo moderado
-      crossover_type: two_points # <--- Buen balance entre conservar y mezclar
-      elitism_count: 2
-      constraint_strategy: penalty_function # <--- Estrategia de penalización
-      penalty_factor: 1.0
-      initial_population_density: 0.3
+  # - nombre: Balanced_Penalty_TwoPointCrossover
+  #   params:
+  #     p_mutate: 0.05
+  #     selection_type: tournament
+  #     tournament_size: 5 # <--- Torneo moderado
+  #     crossover_type: two_points # <--- Buen balance entre conservar y mezclar
+  #     elitism_count: 2
+  #     constraint_strategy: penalty_function # <--- Estrategia de penalización
+  #     penalty_factor: 1.0
+  #     initial_population_density: 0.3

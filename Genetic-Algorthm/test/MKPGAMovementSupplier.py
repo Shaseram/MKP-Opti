@@ -16,13 +16,10 @@ class MKPGAMovementSupplier(GAMovementsSupplier):
         Crea un individuo inicial basándose en la densidad de población
         definida en los parámetros.
         """
-        # La probabilidad ahora se lee desde el objeto de parámetros
         probabilidad_de_incluir = self.ga_params.initial_population_density
         
         return [1 if random.random() < probabilidad_de_incluir else 0 for _ in range(self.ga_params.n_genes)]
-    # ==================================================================
-    # 1. SELECCIÓN (ACTÚA COMO DESPACHADOR)
-    # ==================================================================
+
     def select(self, population_with_fitness: list[tuple[float, list[int]]]):
         selection_method = self.ga_params.selection_type
         if selection_method == 'tournament':
@@ -33,11 +30,11 @@ class MKPGAMovementSupplier(GAMovementsSupplier):
     def _select_tournament(self, population_with_fitness):
         """Selección por torneo generalizada."""
         k = self.ga_params.tournament_size
-        # Seleccionar k individuos al azar de la población para el torneo
         tournament_contenders = random.sample(population_with_fitness, k)
-        # El ganador es el que tiene el mayor fitness (índice 0 de la tupla)
         winner = max(tournament_contenders, key=lambda item: item[0])
         return winner[1]  # Retorna solo el individuo (cromosoma, índice 1 de la tupla)
+    
+
 
     def _select_roulette(self, population_with_fitness):
         """Selección por rueda de ruleta."""
@@ -55,9 +52,6 @@ class MKPGAMovementSupplier(GAMovementsSupplier):
         selected_index = np.random.choice(len(population), p=selection_probs)
         return population[selected_index]
     
-    # ==================================================================
-    # 2. CRUZAMIENTO (ACTÚA COMO DESPACHADOR)
-    # ==================================================================
     def crossing(self, father_1, father_2):
         crossover_method = self.ga_params.crossover_type
         if crossover_method == 'single_point':
@@ -65,7 +59,7 @@ class MKPGAMovementSupplier(GAMovementsSupplier):
         elif crossover_method == 'two_points':
             return self._crossing_two_points(father_1, father_2)
         elif crossover_method == 'uniform':
-            return self._crossing_uniform(father_1, father_2)
+            return self._crossing_uniform_2(father_1, father_2)
 
     def _crossing_single_point(self, father_1, father_2):
         crossover_point = random.randint(1, self.ga_params.n_genes - 1)
@@ -80,6 +74,19 @@ class MKPGAMovementSupplier(GAMovementsSupplier):
                 hijo1[i], hijo2[i] = hijo2[i], hijo1[i]  # Intercambiar genes
         return hijo1, hijo2
     
+    
+    def _crossing_uniform_2(self, padre1, padre2):
+        hijo1, hijo2 = [], []
+
+        for gen1, gen2 in zip(padre1, padre2):
+            if random.random() < 0.5:
+                hijo1.append(gen1)
+                hijo2.append(gen2)
+            else:
+                hijo1.append(gen2)
+                hijo2.append(gen1)
+        return hijo1, hijo2
+    
     def _crossing_two_points(self, padre1, padre2):
         tamaño = self.ga_params.n_genes
         punto1 = random.randint(1, tamaño - 2)
@@ -91,21 +98,26 @@ class MKPGAMovementSupplier(GAMovementsSupplier):
         hijo2 = padre2[:punto1] + padre1[punto1:punto2] + padre2[punto2:]
         return hijo1, hijo2
 
-    # ==================================================================
-    # 3. MUTACIÓN
-    # ==================================================================
     def mutate(self, genome, prob_mutacion):
-        new_genome = list(genome) # Crear una copia para no modificar el original
+        new_genome = list(genome) 
         for i in range(len(new_genome)):
             if random.random() <= prob_mutacion:
                 new_genome[i] = 1 - new_genome[i] # Invierte el bit (0->1, 1->0)
         return new_genome
+    
+    
+    def mutate_2(self, genome, prob_mutacion):
+        for i in range(len(genome)):
+            prob = random.random()
+            if prob <= prob_mutacion and genome[i] == 0:
+                genome[i] = 1
+            elif prob <= prob_mutacion and genome[i] == 1:
+                genome[i] = 0 
+        
+        return genome
 
-    # ==================================================================
-    # 4. REPARACIÓN DE INDIVIDUOS (ACTÚA COMO DESPACHADOR)
-    # ==================================================================
+
     def repair_individual(self, individual, objective_function: ObjectiveFunction):
-        # Si la estrategia no es reparar, no hacemos nada.
         if self.ga_params.constraint_strategy != 'repair':
             return individual
             
@@ -124,9 +136,6 @@ class MKPGAMovementSupplier(GAMovementsSupplier):
             return self._repair_by_ratio(individual, objective_function)
 
     def _is_feasible(self, individual, objective_function):
-        # Esta función helper es clave para no repetir código.
-        # Necesitamos acceder a los datos del problema desde la función objetivo.
-        # NOTA: Usamos los nombres con __ porque son 'privados' en tu clase original.
         capacities = objective_function._MKPObjectiveFunction__lista_capacidades
         weights_matrix = objective_function._MKPObjectiveFunction__lista_restricciones
         

@@ -5,15 +5,9 @@ import csv
 from datetime import datetime
 import numpy as np
 import matplotlib.pyplot as plt
-import yaml # <--- ¡NUEVA IMPORTACIÓN!
+import yaml
 
-# ==============================================================================
-# 1. CONFIGURACIÓN DEL ENTORNO Y DEL FRAMEWORK DE EXPERIMENTOS
-# ==============================================================================
-# Obtener la ruta absoluta del directorio del proyecto (que está un nivel arriba de 'test')
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
-# Agregar la raíz del proyecto al sys.path para que Python pueda encontrar el módulo 'src'
 sys.path.insert(0, project_root)
 
 
@@ -23,17 +17,15 @@ from src.optimization.genetic_algorithm.GeneticAlgorithmParameters import GAPara
 from src.optimization.genetic_algorithm.genetic_algorithm import GeneticAlgorithm
 from src.optimization.objective_function.ObjectiveFunction import ObjectiveFunction
 
-from Instances import Instances
 from MKPGAMovementSupplier import MKPGAMovementSupplier
 from MKPInstance import MKPInstance
 from MKPObjectiveFunction import MKPObjectiveFunction
 
 # --- PANEL DE CONTROL PRINCIPAL ---
-# Define la instancia a probar y cuántas veces se ejecutará cada experimento
-INSTANCIA_A_PROBAR = "InstanciaMKP_actual_1"
+INSTANCIA_A_PROBAR = "InstanciaMKP_actual_5"
 # Define la carpeta donde se guardarán TODOS los resultados
-RUTA_BASE_RESULTADOS = "/home/daniel/OPTI/MKP-Opti/Genetic-Algorthm/test/results_experiments"
-RUTA_ARCHIVO_YAML = "/home/daniel/OPTI/MKP-Opti/Genetic-Algorthm/test/experimentos.yaml" # <--- RUTA A NUESTRO ARCHIVO DE CONFIGURACIÓN
+RUTA_BASE_RESULTADOS = "/home/daniel/PERSONAL/UNIVERSIDAD/OPTI/MKP-Opti/Genetic-Algorthm/test/results_experiments"
+RUTA_ARCHIVO_YAML = "/home/daniel/PERSONAL/UNIVERSIDAD/OPTI/MKP-Opti/Genetic-Algorthm/test/experimentos.yaml" # <--- RUTA A NUESTRO ARCHIVO DE CONFIGURACIÓN
 
 # --- LISTA DE EXPERIMENTOS A REALIZAR ---
 
@@ -44,7 +36,6 @@ def cargar_configuracion_desde_yaml(ruta_yaml):
             config_data = yaml.safe_load(f)
         
         global_config = config_data.get("configuracion_global")
-        # Verificamos que los parámetros globales ahora existan
         if not all(k in global_config for k in ["ruta_instancia", "population_size", "n_generations"]):
             print("Error: El YAML debe tener 'configuracion_global' con 'ruta_instancia', 'population_size', y 'n_generations'.")
             return None, None
@@ -139,11 +130,9 @@ if __name__ == "__main__":
     if not global_config or not EXPERIMENTOS:
         sys.exit("No se pudo cargar la configuración o los experimentos. El programa terminará.")
 
-    # Extraer configuración global
     ruta_instancia_relativa = global_config["ruta_instancia"]
     NUM_EJECUCIONES_POR_EXPERIMENTO = global_config.get("numero_ejecuciones", 10)
     
-    # --- AJUSTE: Parámetros ahora globales ---
     POPULATION_SIZE_GLOBAL = global_config["population_size"]
     N_GENERATIONS_GLOBAL = global_config["n_generations"]
     
@@ -166,30 +155,23 @@ if __name__ == "__main__":
         ruta_experimento_actual = os.path.join(ruta_base_instancia, config_nombre)
         os.makedirs(ruta_experimento_actual, exist_ok=True)
 
-        # Listas para almacenar los resultados de las N ejecuciones
         resultados_fitness_experimento = []
         tiempos_experimento = []
         historias_experimento = []
         mejor_solucion_global = {"fitness": -1, "solucion": []}
 
-        # Bucle interno que ejecuta el mismo experimento N veces
         for i in range(NUM_EJECUCIONES_POR_EXPERIMENTO):
             print(f"  -> Ejecución {i + 1}/{NUM_EJECUCIONES_POR_EXPERIMENTO}...")
 
-            # --- AJUSTE: Combinar parámetros globales con los del experimento ---
             parametros_completos = {
                 "population_size": POPULATION_SIZE_GLOBAL,
                 "n_generations": N_GENERATIONS_GLOBAL,
                 "n_genes": mkp_instance.cantidad_variables
             }
-            # Se añaden los parámetros específicos del experimento. Si un parámetro
-            # (ej. p_mutate) existe, se añade.
             parametros_completos.update(params_experimento)
 
-            # Instanciar GAParameters con el diccionario completo y combinado
             ga_params = GAParameters(**parametros_completos)
 
-            # Instanciar los componentes del AG con la configuración actual
             mkp_obj_function = MKPObjectiveFunction(False, mkp_instance.lista_restricciones, 
                                                     mkp_instance.lista_capacidades, mkp_instance.optimo,
                                                     mkp_instance.valores_variables, 
@@ -200,10 +182,8 @@ if __name__ == "__main__":
             mkp_movement_supplier = MKPGAMovementSupplier(ga_params)
             genetic_algorithm = GeneticAlgorithm(ga_params, mkp_movement_supplier, mkp_obj_function)
 
-            # Ejecutar el algoritmo
             best_solution, best_fitness, ga_track, total_time = genetic_algorithm.run()
 
-            # Guardar los resultados de esta ejecución
             resultados_fitness_experimento.append(best_fitness)
             tiempos_experimento.append(total_time)
             historias_experimento.append(ga_track)
@@ -212,32 +192,24 @@ if __name__ == "__main__":
                 mejor_solucion_global["fitness"] = best_fitness
                 mejor_solucion_global["solucion"] = best_solution
         
-         # --- Al finalizar, procesar y exportar ---
         print(f"--- Experimento '{config_nombre}' completado. Generando reportes... ---")
 
-        # AJUSTE: Asegurarse de que los parámetros globales se reporten
-        # Creamos una copia de los parámetros del experimento y añadimos los globales para el reporte
         parametros_reporte = {
             "population_size": POPULATION_SIZE_GLOBAL,
             "n_generations": N_GENERATIONS_GLOBAL,
             **params_experimento
         }
         
-        # Modificamos el diccionario del experimento para que el reporte sea completo
         experimento_para_reporte = {"nombre": config_nombre, "params": parametros_reporte}
-        # 1. Exportar el reporte detallado en .txt
         ruta_txt = os.path.join(ruta_experimento_actual, "reporte_detallado.txt")
         exportar_reporte_detallado(ruta_txt, experimento, resultados_fitness_experimento, tiempos_experimento, mejor_solucion_global)
 
-        # 2. Generar y guardar el gráfico de convergencia
         ruta_convergencia = os.path.join(ruta_experimento_actual, "grafico_convergencia.png")
         generar_grafico_convergencia(ruta_convergencia, historias_experimento, config_nombre)
 
-        # 3. Generar y guardar el boxplot
         ruta_boxplot = os.path.join(ruta_experimento_actual, "grafico_boxplot.png")
         generar_boxplot_fitness(ruta_boxplot, resultados_fitness_experimento, config_nombre)
         
-       # 4. Actualizar el archivo CSV de resumen general
         datos_para_csv = {
             "Experimento": config_nombre,
             "Instancia": nombre_instancia,
@@ -245,7 +217,7 @@ if __name__ == "__main__":
             "Fitness_Promedio": np.mean(resultados_fitness_experimento),
             "Fitness_Std_Dev": np.std(resultados_fitness_experimento),
             "Tiempo_Promedio_s": np.mean(tiempos_experimento),
-            **parametros_reporte # Usamos el diccionario completo para el CSV
+            **parametros_reporte 
         }
         actualizar_resumen_csv(ruta_resumen_csv, datos_para_csv)
         

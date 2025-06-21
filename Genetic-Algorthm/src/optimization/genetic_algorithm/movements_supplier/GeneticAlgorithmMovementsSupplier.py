@@ -65,6 +65,13 @@ class GAMovementsSupplier(ABC):
     pass
   
   @abstractmethod
+  def mutate_2(self, individual):
+    """
+    Creates a new individual applying some mutation strategy
+    """
+    pass
+  
+  @abstractmethod
   def repair_individual(self, individual, objective_function):
     """
     Toma un individuo y lo repara si es infactible.
