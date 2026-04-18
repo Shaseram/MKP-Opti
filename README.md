@@ -4,9 +4,9 @@ Proyecto de optimización para el Problema de la Mochila Multidimensional 0/1 (M
 
 ## Integrantes
 
-- **Daniel Miranda - 21554586-5**
-- **Pablo Silva - 20184240-9**
-- **Vicente Arratia - 21404392-0**
+- **Daniel Miranda
+- **Pablo Silva
+- **Vicente Arratia
 
 ## Descripción
 
