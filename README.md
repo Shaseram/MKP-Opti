@@ -4,9 +4,9 @@ Proyecto de optimización para el Problema de la Mochila Multidimensional 0/1 (M
 
 ## Integrantes
 
-- **Daniel Miranda
-- **Pablo Silva
-- **Vicente Arratia
+- Daniel Miranda
+- Pablo Silva
+- Vicente Arratia
 
 ## Descripción
 
